@@ -1,7 +1,8 @@
 require('dotenv').config()
 const express = require('express')
 const mongoose = require('mongoose')
-const encrypt = require('mongoose-encryption')
+const bcrypt = require('bcrypt')
+const saltRounds = 10
 
 const app = express()
 app.use(express.urlencoded({extended:true}))
@@ -13,8 +14,6 @@ const userSchema = new mongoose.Schema({
     email: String,
     password: String
 })
-userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ['password']})
-
 const User = new mongoose.model('user', userSchema)
 
 app.get('/', function(req, res) {
@@ -30,17 +29,19 @@ app.get('/register', function(req, res) {
 })
 
 app.post('/register', function(req, res) {
-    const newUser = User({
-        email: req.body.username,
-        password: req.body.password
-    })
-    User.create(newUser, function(err) {
-        if(err) {
-            console.log(err)
-            res.redirect('/register')
-        } else {
-            res.render('secrets')
-        }
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        const newUser = User({
+            email: req.body.username,
+            password: hash
+        })
+        User.create(newUser, function(err) {
+            if(err) {
+                console.log(err)
+                res.redirect('/register')
+            } else {
+                res.render('secrets')
+            }
+        })
     })
 })
 
@@ -48,12 +49,14 @@ app.post('/login', function(req, res) {
     User.findOne({email: req.body.username}, function(err, user) {
         if(!err) {
             if(user) {
-                if(user.password === req.body.password) {
-                    res.render('secrets')
-                } else {
-                    console.log('Wrong password')
-                    res.redirect('/login')
-                }
+                bcrypt.compare(req.body.password, user.password, function(error, result) {
+                    if(result) {
+                        res.render('secrets')
+                    } else {
+                        console.log('Wrong password')
+                        res.redirect('/login')
+                    }
+                })
             } else {
                 console.log('No user found')
                 res.redirect('/register')
