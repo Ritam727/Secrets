@@ -12,7 +12,7 @@ app.use(express.urlencoded({extended:true}))
 app.use(express.static(__dirname+'/public'))
 app.set('view engine', 'ejs')
 app.use(session({
-    secret: "Thisisasecrettobekept.",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false
 }))
@@ -34,14 +34,14 @@ const User = new mongoose.model('user', userSchema)
 
 passport.use(User.createStrategy())
 passport.serializeUser(function(user, done) {
-    done(null, user.id);
-});
+    done(null, user.id)
+})
   
 passport.deserializeUser(function(id, done) {
     User.findById(id, function(err, user) {
-        done(err, user);
-    });
-});
+        done(err, user)
+    })
+})
 passport.use(new GoogleStrategy({
         clientID: process.env.CLIENT_ID,
         clientSecret: process.env.CLIENT_SECRET,
@@ -98,8 +98,8 @@ app.get('/submit', function(req, res) {
 app.get('/auth/google', passport.authenticate('google', { scope: ['email', 'profile'] }))
 
 app.get('/auth/google/secrets', passport.authenticate('google', { failureRedirect: '/login' }), function(req, res) {
-    res.redirect('/secrets');
-});
+    res.redirect('/secrets')
+})
 
 app.post('/register', function(req, res) {
     User.register({username: req.body.username}, req.body.password, function(err, user) {
